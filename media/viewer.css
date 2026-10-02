@@ -1,0 +1,204 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+}
+
+#scroller {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  /* Always reserve room for the scrollbar: otherwise it appears once pages are added and the width change triggers another layout */
+  scrollbar-gutter: stable;
+}
+
+#pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+.page {
+  position: relative;
+  flex: none;
+  user-select: none;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.page canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#toolbar {
+  position: fixed;
+  top: 8px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background);
+  color: var(--vscode-editorWidget-foreground);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+#toolbar:hover {
+  opacity: 1;
+}
+
+#toolbar button {
+  min-width: 24px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 3px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+}
+
+#toolbar button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+#page-info {
+  min-width: 48px;
+  text-align: center;
+}
+
+#banner {
+  position: fixed;
+  top: 8px;
+  left: 16px;
+  z-index: 10;
+  max-width: 60%;
+  padding: 4px 10px;
+  border-radius: 4px;
+  color: #fff;
+}
+
+#banner.fail {
+  background: var(--vscode-statusBarItem-errorBackground, #c72e2e);
+}
+
+#banner.ok {
+  background: var(--vscode-statusBarItem-prominentBackground, #2e7d32);
+}
+
+/* Highlight box for source -> PDF sync; flashes and fades */
+.sync-mark {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 3px;
+  background: rgba(255, 196, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 160, 0, 0.8);
+  animation: sync-fade 1.8s ease-in forwards;
+}
+
+@keyframes sync-fade {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* The text layer styles below are taken from pdfjs-dist/web/pdf_viewer.css (Apache-2.0), keeping only what text selection needs */
+.textLayer {
+  color-scheme: only light;
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 1;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent {
+  display: contents;
+}
+
+.textLayer span[role="img"] {
+  user-select: none;
+  cursor: default;
+}
+
+.textLayer ::selection {
+  background: rgba(0 0 255 / 0.25);
+  background: color-mix(in srgb, AccentColor, transparent 50%);
+  color: transparent;
+}
+
+.textLayer br::selection {
+  background: transparent;
+}
+
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
+}
+
+.textLayer.selecting .endOfContent {
+  top: 0;
+}
+
+/* Draft-fonts tag: must stay visible while the toolbar is translucent */
+#draft-tag {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--vscode-editorWarning-foreground, #cca700);
+  color: var(--vscode-editor-background, #1e1e1e);
+  font-weight: 600;
+}
+
+#toolbar:has(#draft-tag:not([hidden])) {
+  opacity: 0.85;
+}

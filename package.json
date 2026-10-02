@@ -1,0 +1,220 @@
+{
+	"name": "tectonic-watch",
+	"displayName": "Tectonic Watch",
+	"description": "Watches tex files on disk, builds with tectonic on every change, and previews the PDF inside VS Code with SyncTeX jumps in both directions",
+	"version": "0.2.0",
+	"publisher": "zhenwang-bit",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ZhenWang-BIT/tectonic-watch.git"
+	},
+	"bugs": {
+		"url": "https://github.com/ZhenWang-BIT/tectonic-watch/issues"
+	},
+	"homepage": "https://github.com/ZhenWang-BIT/tectonic-watch#readme",
+	"keywords": [
+		"latex",
+		"tectonic",
+		"pdf",
+		"preview",
+		"synctex",
+		"ctex"
+	],
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"extensionKind": [
+		"workspace"
+	],
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"workspaceContains:**/*.tex",
+		"onLanguage:latex"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "tectonicWatch.start",
+				"title": "Start Watching and Preview",
+				"category": "Tectonic",
+				"icon": "$(play)"
+			},
+			{
+				"command": "tectonicWatch.stop",
+				"title": "Stop Watching",
+				"category": "Tectonic",
+				"icon": "$(debug-stop)"
+			},
+			{
+				"command": "tectonicWatch.build",
+				"title": "Build Now (full build with the document fonts)",
+				"category": "Tectonic"
+			},
+			{
+				"command": "tectonicWatch.toggle",
+				"title": "Start/Stop Watching",
+				"category": "Tectonic"
+			},
+			{
+				"command": "tectonicWatch.preview",
+				"title": "Open PDF Preview",
+				"category": "Tectonic",
+				"icon": "$(open-preview)"
+			},
+			{
+				"command": "tectonicWatch.syncToPdf",
+				"title": "Show Current Line in PDF",
+				"category": "Tectonic"
+			},
+			{
+				"command": "tectonicWatch.showLog",
+				"title": "Show Build Output",
+				"category": "Tectonic"
+			}
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "tectonicWatch.start",
+					"when": "resourceLangId == latex && !tectonicWatch.running",
+					"group": "navigation@1"
+				},
+				{
+					"command": "tectonicWatch.preview",
+					"when": "resourceLangId == latex && tectonicWatch.running",
+					"group": "navigation@1"
+				},
+				{
+					"command": "tectonicWatch.stop",
+					"when": "resourceLangId == latex && tectonicWatch.running",
+					"group": "navigation@2"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "tectonicWatch.syncToPdf",
+					"when": "editorLangId == latex",
+					"group": "navigation@90"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "tectonicWatch.start",
+					"when": "!tectonicWatch.running"
+				},
+				{
+					"command": "tectonicWatch.stop",
+					"when": "tectonicWatch.running"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Tectonic Watch",
+			"properties": {
+				"tectonicWatch.autoStart": {
+					"type": "boolean",
+					"default": false,
+					"description": "Start automatically when a project containing tex files is opened (watch for changes, build, open the preview). Off by default; use the start button at the top right of a tex editor."
+				},
+				"tectonicWatch.enable": {
+					"type": "boolean",
+					"default": true,
+					"description": "Once started, watch for file changes and build automatically. Turn it off in workspace settings for projects that have their own build flow; the manual commands still work."
+				},
+				"tectonicWatch.mainFile": {
+					"type": "string",
+					"default": "",
+					"description": "Path of the main file, relative to the workspace root. When empty it is looked up in this order: \"% !TEX root = ...\" at the top of a sub-file, the current file if it contains \\documentclass, the main file that includes the changed file."
+				},
+				"tectonicWatch.tectonicPath": {
+					"type": "string",
+					"default": "tectonic",
+					"description": "Path of the tectonic executable."
+				},
+				"tectonicWatch.extraArgs": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [],
+					"description": "Extra arguments passed to tectonic."
+				},
+				"tectonicWatch.debounceMs": {
+					"type": "number",
+					"default": 100,
+					"description": "Milliseconds to wait after a file change before building, to merge bursts of changes (e.g. an AI tool editing several files at once). A save in VS Code builds immediately without waiting. A change during a build kills that build, so this does not need to be long."
+				},
+				"tectonicWatch.autoOpenPreview": {
+					"type": "boolean",
+					"default": true,
+					"description": "Open the PDF preview after the first successful build once started."
+				},
+				"tectonicWatch.syncAfterBuild": {
+					"type": "boolean",
+					"default": true,
+					"description": "After a successful build, scroll the preview to the place that was just changed and highlight it (the cursor line for a save in the editor, the first changed line for an external edit). The preview does not move when the change is already in view."
+				},
+				"tectonicWatch.stableTimestamp": {
+					"type": "boolean",
+					"default": true,
+					"description": "Pin the timestamps inside the PDF to midnight today, so unchanged content yields a byte-identical PDF and the preview can skip the refresh. \\today is unaffected; \\time becomes 0. An existing SOURCE_DATE_EPOCH environment variable takes precedence."
+				},
+				"tectonicWatch.reuseAux": {
+					"type": "boolean",
+					"default": true,
+					"description": "Keep the .aux and other intermediate files of the previous build: change-triggered builds run TeX only once, and another pass follows automatically when cross-references, the table of contents or the bibliography change. Intermediate files are written to the output directory."
+				},
+				"tectonicWatch.prewarm": {
+					"type": "boolean",
+					"default": true,
+					"description": "Prewarming: start a tectonic process ahead of time, let it read the preamble (packages, fonts) and wait just before \\begin{document}; when a file changes it continues with the body, saving the preamble load on every build. One tectonic process stays resident while you edit. macOS and Linux only."
+				},
+				"tectonicWatch.prewarmIdleMinutes": {
+					"type": "number",
+					"default": 5,
+					"description": "Release the prewarmed process after this many minutes without changes; it is prepared again as soon as you type in a tex file. 0 means never release."
+				},
+				"tectonicWatch.draftFonts": {
+					"type": "boolean",
+					"default": true,
+					"description": "Build with the fandol fonts (ctex documents only; the document is not modified): much faster than system CJK fonts and far less memory."
+				},
+				"tectonicWatch.finalBuild": {
+					"type": "boolean",
+					"default": false,
+					"description": "After a draft-font build, rebuild automatically with the document's own fonts once editing stops. Off by default: the preview and the PDF on disk stay in fandol; run \"Build Now\" when you need the document fonts. System CJK fonts are large, so with this on the final build is much slower and the prewarmed process takes about 900 MB more memory."
+				},
+				"tectonicWatch.finalBuildDelayMs": {
+					"type": "number",
+					"default": 3000,
+					"description": "With finalBuild on, milliseconds without edits after a draft build before rebuilding with the document fonts."
+				}
+			}
+		},
+		"keybindings": [
+			{
+				"command": "tectonicWatch.syncToPdf",
+				"key": "ctrl+alt+j",
+				"mac": "cmd+alt+j",
+				"when": "editorTextFocus && editorLangId == latex"
+			}
+		]
+	},
+	"scripts": {
+		"build": "node build.mjs",
+		"typecheck": "tsc --noEmit",
+		"package": "npm run typecheck && npm run build && vsce package --no-dependencies"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.3",
+		"@types/vscode": "^1.90.0",
+		"@vscode/vsce": "^4.0.0",
+		"esbuild": "^0.28.2",
+		"pdfjs-dist": "^6.3.289",
+		"typescript": "^7.0.2"
+	}
+}

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+# pdf.js is copied in from node_modules by build.mjs
+media/pdfjs/
+*.vsix
+.DS_Store
+
+# build output of the test documents
+e2e/**/*.aux
+e2e/**/*.log
+e2e/**/*.toc
+e2e/**/*.out
+e2e/**/*.bbl
+e2e/**/*.blg
+e2e/**/*.synctex.gz
+e2e/**/main.pdf
+e2e/out-*.json
